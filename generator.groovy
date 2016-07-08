@@ -26,7 +26,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 @GrabResolver(name = 'nexus', root = 'http://dev/nexus/content/groups/public')
-@Grab('com.unidev.platform.spring:simple-config:2.0.0')
+@Grab('com.unidev.platform:unidev-spring-config:2.0.0')
 @Grab('com.unidev.platform.components:template-freemarker:2.0.0-SNAPSHOT')
 @Grab('com.unidev.customcms:customcms-robotstxt:1.1.0')
 @Grab('com.unidev.customcms:customcms-sitemap-model:1.1.0')
@@ -70,6 +70,7 @@ LOG.info("*** Configurations ***\n$FILES_DIR\n$THEME_DIR\n$OUTPUT_DIR\n")
 Map<String, Object> apps = new HashMap<>();
 Map<String, File> appFolders = new HashMap<>();
 List categories = new ArrayList();
+Map<String, Object> catMap = new HashMap<>();
 List links = new ArrayList();
 
 IOFileFilter folderFilter = new IOFileFilter() {
@@ -142,7 +143,10 @@ sql.eachRow("select distinct category from app order by category asc") {
     String c = (category + "").toLowerCase();
     c = c.replaceAll("[^A-Za-z0-9]", "-")
     categories.add("title" : category + "", "link" : c);
-
+    def map = new HashMap();
+    map.put("title", category + "");
+    map.put("link", c + "");
+    catMap.put(category + "", map);
 }
 
 LOG.info("Categories {}", categories)
@@ -159,10 +163,13 @@ for(Object app : apps.values()) {
         templateBuilder = TemplateBuilder.newFilePathTemplate(THEME_DIR, "app.ftl")
     }
 
+
     String appOutputFile = templateBuilder
             .addVariable("app", app)
             .addVariable("market", market)
+            .addVariable("domain", domain)
             .addVariable("categories", categories)
+            .addVariable("category", catMap[app.category])
             .build();
 
     writeOutput(app.outputFolder, "index.html", appOutputFile)
@@ -202,6 +209,7 @@ for(Object category : categories) {
 
     String appList = templateBuilder = TemplateBuilder.newFilePathTemplate(THEME_DIR, "applist.ftl")
             .addVariable("market", market)
+            .addVariable("domain", domain)
             .addVariable("apps",orderedAppList)
             .addVariable("packages", apps.keySet())
             .addVariable("categories", categories)
@@ -231,6 +239,7 @@ sql.eachRow("select app_package from app order by creation_date desc") {
 
 String appList = templateBuilder = TemplateBuilder.newFilePathTemplate(THEME_DIR, "applist.ftl")
         .addVariable("market", market)
+        .addVariable("domain", domain)
         .addVariable("apps",orderedAppList)
         .addVariable("packages", apps.keySet())
         .addVariable("categories", categories)
@@ -253,6 +262,7 @@ writeOutput(".", "robots.txt", reobotsTxt)
 
 String sitemap = templateBuilder = TemplateBuilder.newFilePathTemplate(THEME_DIR, "sitemap.ftl")
         .addVariable("market", market)
+        .addVariable("domain", domain)
         .addVariable("sitemapLinks",links)
         .build();
 writeOutput(".", "sitemap.xml", sitemap)
